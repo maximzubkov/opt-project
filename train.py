@@ -18,8 +18,7 @@ def train(generator, critic, c_loss_fn, g_loss_fn,
         x = x.to(ptu.device).float()
         fake_data = generator.sample(x.shape[0])
 
-        gp = gradient_penalty(generator, critic, x, fake_data)
-        c_loss = c_loss_fn(generator, critic, x)  + gp_lamb * gp
+        c_loss = c_loss_fn(generator, critic, x)
         c_optimizer.zero_grad()
         c_loss.backward()
         c_optimizer.step()
@@ -67,24 +66,6 @@ def train_epochs(generator, critic, g_loss_fn, c_loss_fn,
         return (train_losses, start_snapshot, final_snapshot)
     else:
         return train_losses
-
-def gradient_penalty(g, d, real_data, fake_data):
-    batch_size = real_data.shape[0]
-
-    # Calculate interpolation
-    eps = torch.rand(batch_size, 1).to(ptu.device)
-    # eps = eps.expand_as(real_data)
-    interpolated = eps * real_data.data + (1 - eps) * fake_data.data
-    interpolated.requires_grad = True
-
-    d_output = d(interpolated)
-    gradients = torch.autograd.grad(outputs=d_output, inputs=interpolated,
-                                    grad_outputs=torch.ones(d_output.size()).to(ptu.device),
-                                    create_graph=True, retain_graph=True)[0]
-
-    gradients = gradients.reshape(batch_size, -1)
-    gradients_norm = torch.sqrt(torch.sum(gradients ** 2, dim=1) + 1e-12)
-    return ((gradients_norm - 1) ** 2).mean()
 
 def get_training_snapshot(generator, critic, n_samples=5000):
     generator.eval()
