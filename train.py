@@ -3,7 +3,9 @@ import torch.nn as nn
 import torch.optim as optim
 from tqdm import trange, tqdm_notebook
 import utils.pytorch_utils as ptu
+from utils.exp1 import spiral_experiment_gan_plot, spiral_experiment_data
 import numpy as np
+from IPython.display import clear_output
 
 def train(generator, critic, c_loss_fn, g_loss_fn, 
           train_loader, g_optimizer, c_optimizer, 
@@ -41,6 +43,7 @@ def train_epochs(generator, critic, g_loss_fn, c_loss_fn,
     epochs = train_args['epochs']
 
     train_losses = dict()
+    data = spiral_experiment_data()
     for epoch in tqdm_notebook(range(epochs), desc='Epoch', leave=False):
         if epoch == 1:
             start_snapshot = get_training_snapshot(generator, critic)
@@ -55,7 +58,9 @@ def train_epochs(generator, critic, g_loss_fn, c_loss_fn,
             if k not in train_losses:
                 train_losses[k] = []
             train_losses[k].extend(train_loss[k])
-
+        sample, xs, _ = get_training_snapshot(generator, critic)
+        spiral_experiment_gan_plot(data, sample, xs, f'Epoch {epoch}', f'results/epoch_{epoch}.png')
+        clear_output(wait=True)
     if train_args.get('final_snapshot', False):
         final_snapshot = get_training_snapshot(generator, critic)
         return [train_losses, *start_snapshot, *final_snapshot]
@@ -65,7 +70,9 @@ def train_epochs(generator, critic, g_loss_fn, c_loss_fn,
 def get_training_snapshot(generator, critic, n_samples=5000):
     generator.eval()
     critic.eval()
+    in_dim, out_dim = generator.latent_dim, generator.out_dim
     xs = np.linspace(-1, 1, 1000)
     samples = ptu.get_numpy(generator.sample(n_samples))
-    critic_output = ptu.get_numpy(critic(ptu.FloatTensor(xs).unsqueeze(1)))
+    critic_output = None
+#     ptu.get_numpy(critic(ptu.FloatTensor(xs).unsqueeze(1)))
     return samples, xs, critic_output

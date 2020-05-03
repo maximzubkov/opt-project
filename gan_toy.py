@@ -22,6 +22,7 @@ class Generator(nn.Module):
         super().__init__()
         layers = []
         self.latent_dim = latent_dim
+        self.out_dim = data_dim
         self.mlp = MLP(latent_dim, n_hidden, hidden_size, data_dim)
     
     def forward(self, z):
