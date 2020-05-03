@@ -55,7 +55,7 @@ def experiment_data(n=20000, is_spiral=False):
         gaussian2 = np.random.normal(loc=0.5, scale=0.55, size=(n//2,))
         gaussian3 = np.random.normal(loc=8, scale=0.25, size=(n//4,))
         gaussian4 = np.random.normal(loc=5, scale=0.55, size=(n//8,))
-
+#         data = (np.concatenate([gaussian1])).reshape([-1, 1])
         data = (np.concatenate([gaussian1, gaussian2, gaussian3, gaussian4]) + 1).reshape([-1, 1])
         scaled_data = (data - np.min(data)) / (np.max(data) - np.min(data) + 1e-8)
         return 2 * scaled_data -1
@@ -72,8 +72,9 @@ def visualize_experiment_dataset(is_spiral=False):
 
 def experiment_save_results(part, fn, name, is_spiral=False):
     data = experiment_data(is_spiral=is_spiral)
-    losses, samples_start, samples_end = fn(data)
+    g, c, losses, samples_start, samples_end = fn(data)
     plot_gan_training(losses, f'{name}{part} Losses', f'results/{name}{part}_losses.png')
     experiment_gan_plot(data,  samples_start, f'{name}{part} Epoch 1', f'results/{name}{part}_epoch1.png', is_spiral)
     experiment_gan_plot(data, samples_end, f'{name}{part} Final', f'results/{name}{part}_final.png', is_spiral)
+    return g, c, losses, samples_start, samples_end
 

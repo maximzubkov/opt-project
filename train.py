@@ -8,7 +8,7 @@ import numpy as np
 from IPython.display import clear_output
 
 def train(generator, critic, c_loss_fn, g_loss_fn, 
-          train_loader, g_optimizer, c_optimizer, 
+          train_loader, g_optimizer, c_optimizer, gp_lamb=0.001,
           n_critic=1, g_scheduler=None, c_scheduler=None, 
           weight_clipping=None):
     g_losses, c_losses = [], []
@@ -16,14 +16,14 @@ def train(generator, critic, c_loss_fn, g_loss_fn,
     critic.train()
     for i, x in enumerate(train_loader):
         x = x.to(ptu.device).float()
-        c_loss = c_loss_fn(generator, critic, x)
+        fake_data = generator.sample(x.shape[0])
+
+        gp = gradient_penalty(generator, critic, x, fake_data)
+        c_loss = c_loss_fn(generator, critic, x)  + gp_lamb * gp
         c_optimizer.zero_grad()
         c_loss.backward()
         c_optimizer.step()
         c_losses.append(c_loss.item())
-        if weight_clipping is not None:
-            for param in critic.parameters():
-                param.data.clamp_(-weight_clipping, weight_clipping)
 
         if i % n_critic == 0:
             g_loss = g_loss_fn(generator, critic, x)
@@ -50,9 +50,9 @@ def train_epochs(generator, critic, g_loss_fn, c_loss_fn,
         generator.train()
         critic.train()
         train_loss = train(generator, critic, c_loss_fn, g_loss_fn, train_loader, 
-                           g_opt, c_opt, n_critic=train_args.get('n_critic', 1), 
-                           g_scheduler=g_scheduler, c_scheduler=c_scheduler,
-                           weight_clipping=train_args.get('weight_clipping', None))
+                           g_opt, c_opt, gp_lamb=train_args.get('n_critic', 0.001),
+                           n_critic=train_args.get('n_critic', 1), 
+                           g_scheduler=g_scheduler, c_scheduler=c_scheduler)
         
         for k in train_loss:
             if k not in train_losses:
@@ -67,6 +67,24 @@ def train_epochs(generator, critic, g_loss_fn, c_loss_fn,
         return (train_losses, start_snapshot, final_snapshot)
     else:
         return train_losses
+
+def gradient_penalty(g, d, real_data, fake_data):
+    batch_size = real_data.shape[0]
+
+    # Calculate interpolation
+    eps = torch.rand(batch_size, 1).to(ptu.device)
+    # eps = eps.expand_as(real_data)
+    interpolated = eps * real_data.data + (1 - eps) * fake_data.data
+    interpolated.requires_grad = True
+
+    d_output = d(interpolated)
+    gradients = torch.autograd.grad(outputs=d_output, inputs=interpolated,
+                                    grad_outputs=torch.ones(d_output.size()).to(ptu.device),
+                                    create_graph=True, retain_graph=True)[0]
+
+    gradients = gradients.reshape(batch_size, -1)
+    gradients_norm = torch.sqrt(torch.sum(gradients ** 2, dim=1) + 1e-12)
+    return ((gradients_norm - 1) ** 2).mean()
 
 def get_training_snapshot(generator, critic, n_samples=5000):
     generator.eval()

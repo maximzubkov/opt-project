@@ -2,6 +2,7 @@ import torch
 from torch.nn.modules import conv
 from torch.nn.modules import Linear
 from torch.nn.modules.utils import _pair
+import torch.nn.functional as F
 
 
 def _l2normalize(v, eps=1e-12):
