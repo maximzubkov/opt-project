@@ -6,6 +6,10 @@ import utils.pytorch_utils as ptu
 from utils.exp1 import experiment_gan_plot, experiment_data
 import numpy as np
 from IPython.display import clear_output
+<<<<<<< HEAD
+=======
+import scipy.stats as stat
+>>>>>>> multimodal
 
 def train(generator, critic, c_loss_fn, g_loss_fn, 
           train_loader, g_optimizer, c_optimizer, gp_lamb=0.001,
@@ -43,6 +47,8 @@ def train_epochs(generator, critic, g_loss_fn, c_loss_fn,
 
     train_losses = dict()
     data = experiment_data(is_spiral=is_spiral)
+    pvals = []
+
     for epoch in tqdm_notebook(range(epochs), desc='Epoch', leave=False):
         if epoch == 1:
             start_snapshot = get_training_snapshot(generator, critic)
@@ -58,14 +64,22 @@ def train_epochs(generator, critic, g_loss_fn, c_loss_fn,
                 train_losses[k] = []
             train_losses[k].extend(train_loss[k])
         sample = get_training_snapshot(generator, critic)
+
+        # stat criterion
+        data2 = np.array(sample)
+        data2 = data2.T
+        data1 = data.T
+        pvalue = stat.ks_2samp(data1[0], data2[0])[1]
+        pvals.append(pvalue)
+
         experiment_gan_plot(data, sample, f'Epoch {epoch}',
                             f'results/epoch_{epoch}.png', is_spiral)
         clear_output(wait=True)
     if train_args.get('final_snapshot', False):
         final_snapshot = get_training_snapshot(generator, critic)
-        return (train_losses, start_snapshot, final_snapshot)
+        return (train_losses, start_snapshot, final_snapshot, pvals)
     else:
-        return train_losses
+        return train_losses, pvals
 
 def get_training_snapshot(generator, critic, n_samples=5000):
     generator.eval()
