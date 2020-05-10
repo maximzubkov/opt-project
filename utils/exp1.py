@@ -6,39 +6,51 @@ from torchvision import transforms as transforms
 from .utils import *
 from PIL import Image as PILImage
 import scipy.ndimage
+from .pytorch_utils import device
 
-import numpy as np
 import math
 import sys
 
 softmax = None
 model = None
-device = torch.device("cuda:0")
 
-def plot_gan_training(losses, title, fname):
-    plt.figure()
+def plot_gan_training(losses, title, ax):
     n_itr = len(losses)
     xs = np.arange(n_itr)
 
-    plt.plot(xs, losses, label='loss')
-    plt.legend()
-    plt.title(title)
-    plt.xlabel('Training Iteration')
-    plt.ylabel('Loss')
-    savefig(fname)
+    ax.plot(xs, losses, label='loss')
+    ax.legend()
+    ax.grid()
+    ax.set_title(title)
+    ax.set_xlabel('Training Iteration')
+    ax.set_ylabel('Loss')
 
-def experiment_gan_plot(data, samples, title, fname, is_spiral=False):
-    plt.figure(figsize=(8,8))
+def plot_dicriminator_heatmap(d, fig, ax, resolution=60):
+    grid = np.zeros((resolution, resolution, 2))
+    grid[:, :, 0] = np.linspace(-1, 1, resolution).reshape((1, -1))
+    grid[:, :, 1] = np.linspace(1, -1, resolution).reshape((-1, 1))
+    flat_grid = grid.reshape((-1, 2))
+    d.eval()
+    flat_grid = torch.Tensor(flat_grid).to(device).float()
+    result = torch.Tensor.cpu(d.forward(flat_grid)).detach().numpy()
+    y, x = np.meshgrid(np.linspace(-1, 1, resolution), np.linspace(-1, 1, resolution))
+    z = result.reshape(resolution, resolution)
+    z_min, z_max = 0, 1
+    col = ax.pcolormesh(x, y, z, cmap='RdBu', vmin=z_min, vmax=z_max)
+    ax.set_title('discriminator probability heatmap')
+    ax.axis([x.min(), x.max(), y.min(), y.max()])
+    fig.colorbar(col, ax=ax)
+
+def experiment_gan_plot(data, samples, title, ax, is_spiral=False):
     if is_spiral:
-        plt.scatter(data[:, 0], data[:, 1], label='real')
-        plt.scatter(samples[:, 0], samples[:, 1], label='fake')
+        ax.scatter(data[:, 0], data[:, 1], label='real')
+        ax.scatter(samples[:, 0], samples[:, 1], label='fake')
     else:
-        plt.hist(samples, bins=50, density=True, alpha=0.7, label='fake')
-        plt.hist(data, bins=50, density=True, alpha=0.7, label='real')
-    plt.legend()
-    plt.grid()
-    plt.title(title)
-    savefig(fname)
+        ax.hist(samples, bins=50, density=True, alpha=0.7, label='fake')
+        ax.hist(data, bins=50, density=True, alpha=0.7, label='real')
+    ax.legend()
+    ax.grid()
+    ax.set_title(title)
 
 def experiment_data(n=20000, is_spiral=False, n_modes=1, params=[(0,1)]):
     if is_spiral:
@@ -73,9 +85,15 @@ def visualize_experiment_dataset(is_spiral=False, modes=1, param_modes=[(0,1)]):
 def experiment_save_results(part, fn, name, is_spiral=False, modes=1, param_modes=[(0,1)]):
     data = experiment_data(is_spiral=is_spiral, n_modes=modes, params=param_modes)
     g, c, losses, samples_start, samples_end, pvals = fn(data)
-    plot_gan_training(losses, f'{name}{part} Losses', f'results/{name}{part}_losses.png')
-    experiment_gan_plot(data,  samples_start, f'{name}{part} Epoch 1', f'results/{name}{part}_epoch1.png', is_spiral)
-    experiment_gan_plot(data, samples_end, f'{name}{part} Final', f'results/{name}{part}_final.png', is_spiral)
+    fig = plt.figure(figsize=(12,30))
+    ax1 = fig.add_subplot(3, 1, 1)
+    ax2 = fig.add_subplot(3, 1, 2)
+    ax3 = fig.add_subplot(3, 1, 3)
+    plot_gan_training(losses, f'{name}{part} Losses', ax1)
+    experiment_gan_plot(data,  samples_start, f'{name}{part} Epoch 1', ax2, is_spiral)
+    experiment_gan_plot(data, samples_end, f'{name}{part} Final', ax3, is_spiral)
+    # plt.show()
+    savefig(f'results/{name}{part}.png')
     return g, c, losses, samples_start, samples_end, pvals
 
 

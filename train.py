@@ -3,9 +3,10 @@ import torch.nn as nn
 import torch.optim as optim
 from tqdm import trange, tqdm_notebook
 import utils.pytorch_utils as ptu
-from utils.exp1 import experiment_gan_plot, experiment_data
+from utils.exp1 import experiment_gan_plot, experiment_data, plot_dicriminator_heatmap
 import numpy as np
 from IPython.display import clear_output
+import matplotlib.pyplot as plt
 import scipy.stats as stat
 
 
@@ -70,8 +71,17 @@ def train_epochs(generator, critic, g_loss_fn, c_loss_fn,
         pvalue = stat.ks_2samp(data1[0], data2[0])[1]
         pvals.append(pvalue)
 
-        experiment_gan_plot(data, sample, f'Epoch {epoch}',
-                            f'results/epoch_{epoch}.png', is_spiral)
+        fig = plt.figure(figsize=(20,8))
+        if is_spiral:
+            ax1 = fig.add_subplot(1, 2, 1)
+            ax2 = fig.add_subplot(1, 2, 2)
+            experiment_gan_plot(data, sample, f'Epoch {epoch}', ax=ax1, is_spiral=True)
+            plot_dicriminator_heatmap(critic, fig=fig, ax=ax2)
+            plt.show()
+        else:
+            ax = fig.add_subplot(1, 1, 1)
+            experiment_gan_plot(data, sample, f'Epoch {epoch}', ax=ax, is_spiral=False)
+            plt.show()
         clear_output(wait=True)
     if train_args.get('final_snapshot', False):
         final_snapshot = get_training_snapshot(generator, critic)
@@ -83,4 +93,6 @@ def get_training_snapshot(generator, critic, n_samples=5000):
     generator.eval()
     critic.eval()
     samples = ptu.get_numpy(generator.sample(n_samples))
+    generator.train()
+    critic.train()
     return samples
