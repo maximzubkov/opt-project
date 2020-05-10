@@ -41,7 +41,7 @@ def experiment_gan_plot(data, samples, title, fname, is_spiral=False):
     plt.title(title)
     savefig(fname)
 
-def experiment_data(n=20000, is_spiral=False):
+def experiment_data(n=20000, is_spiral=False, n_modes=1, params=[(0,1)]):
     if is_spiral:
         theta = np.random.rand(n) * 30 
         r = theta / 30
@@ -51,18 +51,17 @@ def experiment_data(n=20000, is_spiral=False):
         return results
     else:
         assert n % 2 == 0
-
-        gaussian1 = np.random.normal(loc=-1, scale=0.25, size=(n//4,))
-        gaussian2 = np.random.normal(loc=0.5, scale=0.55, size=(n//2,))
-        gaussian3 = np.random.normal(loc=8, scale=0.25, size=(n//4,))
-        gaussian4 = np.random.normal(loc=5, scale=0.55, size=(n//8,))
-#         data = (np.concatenate([gaussian1])).reshape([-1, 1])
-        data = (np.concatenate([gaussian1, gaussian2, gaussian3, gaussian4]) + 1).reshape([-1, 1])
+        assert n_modes == len(params)
+        lst = []
+        for i in range(n_modes):
+            gaussian = np.random.normal(loc=params[i][0], scale=params[i][1], size=(n//n_modes,))
+            lst.append(gaussian)
+        data = (np.concatenate(lst) + 1).reshape([-1, 1])
         scaled_data = (data - np.min(data)) / (np.max(data) - np.min(data) + 1e-8)
         return 2 * scaled_data -1
 
-def visualize_experiment_dataset(is_spiral=False):
-    data = experiment_data(is_spiral=is_spiral)
+def visualize_experiment_dataset(is_spiral=False, modes=1, param_modes=[(0,1)]):
+    data = experiment_data(is_spiral=is_spiral, n_modes=modes, params=param_modes)
     plt.figure(figsize=(8,8))
     if is_spiral:
         plt.scatter(data[:, 0], data[:, 1], label='train spiral data')
@@ -71,9 +70,9 @@ def visualize_experiment_dataset(is_spiral=False):
     plt.legend()
     plt.show()
 
-def experiment_save_results(part, fn, name, is_spiral=False):
-    data = experiment_data(is_spiral=is_spiral)
 
+def experiment_save_results(part, fn, name, is_spiral=False, modes=1, param_modes=[(0,1)]):
+    data = experiment_data(is_spiral=is_spiral, n_modes=modes, params=param_modes)
     g, c, losses, samples_start, samples_end, pvals = fn(data)
     plot_gan_training(losses, f'{name}{part} Losses', f'results/{name}{part}_losses.png')
     experiment_gan_plot(data,  samples_start, f'{name}{part} Epoch 1', f'results/{name}{part}_epoch1.png', is_spiral)
