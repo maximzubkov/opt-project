@@ -6,10 +6,8 @@ import utils.pytorch_utils as ptu
 from utils.exp1 import experiment_gan_plot, experiment_data
 import numpy as np
 from IPython.display import clear_output
-<<<<<<< HEAD
-=======
 import scipy.stats as stat
->>>>>>> multimodal
+
 
 def train(generator, critic, c_loss_fn, g_loss_fn, 
           train_loader, g_optimizer, c_optimizer, gp_lamb=0.001,
@@ -50,7 +48,7 @@ def train_epochs(generator, critic, g_loss_fn, c_loss_fn,
     pvals = []
 
     for epoch in tqdm_notebook(range(epochs), desc='Epoch', leave=False):
-        if epoch == 1:
+        if epoch == 0:
             start_snapshot = get_training_snapshot(generator, critic)
         generator.train()
         critic.train()

@@ -6,7 +6,6 @@ from torchvision import transforms as transforms
 from .utils import *
 from PIL import Image as PILImage
 import scipy.ndimage
-import cv2
 
 import numpy as np
 import math
