@@ -3,11 +3,13 @@ import torch.nn as nn
 import torch.optim as optim
 from tqdm import trange, tqdm_notebook
 import utils.pytorch_utils as ptu
-from utils.exp1 import experiment_gan_plot, experiment_data, plot_dicriminator_heatmap
+from utils.exp1 import experiment_gan_plot, experiment_data, plot_dicriminator_heatmap, show_qq_plot
 import numpy as np
 from IPython.display import clear_output
 import matplotlib.pyplot as plt
 import scipy.stats as stat
+import statsmodels.api as sm
+from statsmodels.graphics.gofplots import qqplot_2samples
 
 
 def train(generator, critic, c_loss_fn, g_loss_fn, 
@@ -47,6 +49,7 @@ def train_epochs(generator, critic, g_loss_fn, c_loss_fn,
     train_losses = dict()
     data = experiment_data(is_spiral=is_spiral, n_modes=modes, params=param_modes)
     pvals = []
+    snapshots = []
 
     for epoch in tqdm_notebook(range(epochs), desc='Epoch', leave=False):
         if epoch == 0:
@@ -63,6 +66,7 @@ def train_epochs(generator, critic, g_loss_fn, c_loss_fn,
                 train_losses[k] = []
             train_losses[k].extend(train_loss[k])
         sample = get_training_snapshot(generator, critic)
+        snapshots.append(sample)
 
         # stat criterion
         data2 = np.array(sample)
@@ -73,16 +77,24 @@ def train_epochs(generator, critic, g_loss_fn, c_loss_fn,
 
         fig = plt.figure(figsize=(20,8))
         if is_spiral:
-            ax1 = fig.add_subplot(1, 2, 1)
-            ax2 = fig.add_subplot(1, 2, 2)
+            ax1 = fig.add_subplot(2, 2, 1)
+            ax2 = fig.add_subplot(2, 2, 2)
+            ax3 = fig.add_subplot(2, 2, 3)
+            ax4 = fig.add_subplot(2, 2, 4)
+            
             experiment_gan_plot(data, sample, f'Epoch {epoch}', ax=ax1, is_spiral=True)
+            show_qq_plot(data, sample, snapshots[epoch-1], f'Q-Q curr_prev Epoch {epoch}', ax=ax3, is_spiral=True)
+            show_qq_plot(data, sample, data, f'Q-Q curr_target Epoch {epoch}', ax=ax4, is_spiral=True)
             plot_dicriminator_heatmap(critic, fig=fig, ax=ax2)
             plt.show()
         else:
-            ax = fig.add_subplot(1, 1, 1)
-            experiment_gan_plot(data, sample, f'Epoch {epoch}', ax=ax, is_spiral=False)
+            ax1 = fig.add_subplot(1, 2, 1)
+            ax2 = fig.add_subplot(1, 2, 2)
+            experiment_gan_plot(data, sample, f'Epoch {epoch}', ax=ax1, is_spiral=False)
+            show_qq_plot(data, sample, data, f'Q-Q curr_target Epoch {epoch}', ax=ax2, is_spiral=False)
             plt.show()
         clear_output(wait=True)
+        
     if train_args.get('final_snapshot', False):
         final_snapshot = get_training_snapshot(generator, critic)
         return (train_losses, start_snapshot, final_snapshot, pvals)
