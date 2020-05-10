@@ -40,11 +40,11 @@ def train(generator, critic, c_loss_fn, g_loss_fn,
 
 def train_epochs(generator, critic, g_loss_fn, c_loss_fn, 
                  train_loader, train_args, g_opt, c_opt, 
-                 g_scheduler=None, c_scheduler=None, is_spiral=False):
+                 g_scheduler=None, c_scheduler=None, is_spiral=False, modes=1, param_modes=[(0,1)]):
     epochs = train_args['epochs']
 
     train_losses = dict()
-    data = experiment_data(is_spiral=is_spiral)
+    data = experiment_data(is_spiral=is_spiral, n_modes=modes, params=param_modes)
     pvals = []
 
     for epoch in tqdm_notebook(range(epochs), desc='Epoch', leave=False):
