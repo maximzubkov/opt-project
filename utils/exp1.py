@@ -7,6 +7,8 @@ from .utils import *
 from PIL import Image as PILImage
 import scipy.ndimage
 from .pytorch_utils import device
+import statsmodels.api as sm
+from statsmodels.graphics.gofplots import qqplot_2samples
 
 import math
 import sys
@@ -51,6 +53,13 @@ def experiment_gan_plot(data, samples, title, ax, is_spiral=False):
     ax.legend()
     ax.grid()
     ax.set_title(title)
+    
+def show_qq_plot(data, current, previous, title, ax, is_spiral=False):
+    pp_x = sm.ProbPlot(current)
+    pp_y = sm.ProbPlot(previous)
+    qqplot_2samples(pp_x, pp_y, line="r", ax=ax)
+    ax.grid()
+    ax.set_title(title)
 
 def experiment_data(n=20000, is_spiral=False, n_modes=1, params=[(0,1)]):
     if is_spiral:
@@ -80,7 +89,6 @@ def visualize_experiment_dataset(is_spiral=False, modes=1, param_modes=[(0,1)]):
         plt.hist(data, bins=50, alpha=0.7, label='train data')
     plt.legend()
     plt.show()
-
 
 def experiment_save_results(part, fn, name, is_spiral=False, modes=1, param_modes=[(0,1)]):
     data = experiment_data(is_spiral=is_spiral, n_modes=modes, params=param_modes)
