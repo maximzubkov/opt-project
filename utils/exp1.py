@@ -35,9 +35,9 @@ def plot_dicriminator_heatmap(d, fig, ax, resolution=60):
     d.eval()
     flat_grid = torch.Tensor(flat_grid).to(device).float()
     result = torch.Tensor.cpu(d.forward(flat_grid)).detach().numpy()
-    y, x = np.meshgrid(np.linspace(-1, 1, resolution), np.linspace(-1, 1, resolution))
+    x, y = np.meshgrid(np.linspace(-1, 1, resolution), np.linspace(-1, 1, resolution))
     z = result.reshape(resolution, resolution)
-    z_min, z_max = 0, 1
+    z_min, z_max = z.min(), z.max()
     col = ax.pcolormesh(x, y, z, cmap='RdBu', vmin=z_min, vmax=z_max)
     ax.set_title('discriminator probability heatmap')
     ax.axis([x.min(), x.max(), y.min(), y.max()])
@@ -48,8 +48,8 @@ def experiment_gan_plot(data, samples, title, ax, is_spiral=False):
         ax.scatter(data[:, 0], data[:, 1], label='real')
         ax.scatter(samples[:, 0], samples[:, 1], label='fake')
     else:
-        ax.hist(samples, bins=50, density=True, alpha=0.7, label='fake')
-        ax.hist(data, bins=50, density=True, alpha=0.7, label='real')
+        ax.hist(samples, bins=200, density=True, alpha=0.7, label='fake')
+        ax.hist(data, bins=200, density=True, alpha=0.7, label='real')
     ax.legend()
     ax.grid()
     ax.set_title(title)
@@ -61,7 +61,7 @@ def show_qq_plot(data, current, previous, title, ax, is_spiral=False):
     ax.grid()
     ax.set_title(title)
 
-def experiment_data(n=20000, is_spiral=False, n_modes=1, params=[(0,1)]):
+def experiment_data(n=10000, is_spiral=False, n_modes=1, params=[(0,1)]):
     if is_spiral:
         theta = np.random.rand(n) * 30 
         r = theta / 30

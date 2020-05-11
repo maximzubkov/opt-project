@@ -75,23 +75,26 @@ def train_epochs(generator, critic, g_loss_fn, c_loss_fn,
         pvalue = stat.ks_2samp(data1[0], data2[0])[1]
         pvals.append(pvalue)
 
-        fig = plt.figure(figsize=(20,8))
         if is_spiral:
-            ax1 = fig.add_subplot(2, 2, 1)
-            ax2 = fig.add_subplot(2, 2, 2)
-            ax3 = fig.add_subplot(2, 2, 3)
-            ax4 = fig.add_subplot(2, 2, 4)
+            fig = plt.figure(figsize=(20,10))
+
+            ax1 = fig.add_subplot(1, 2, 1)
+            ax2 = fig.add_subplot(1, 2, 2)
+            # ax3 = fig.add_subplot(2, 2, 3)
+            # ax4 = fig.add_subplot(2, 2, 4)
             
             experiment_gan_plot(data, sample, f'Epoch {epoch}', ax=ax1, is_spiral=True)
-            show_qq_plot(data, sample, snapshots[epoch-1], f'Q-Q curr_prev Epoch {epoch}', ax=ax3, is_spiral=True)
-            show_qq_plot(data, sample, data, f'Q-Q curr_target Epoch {epoch}', ax=ax4, is_spiral=True)
+            # show_qq_plot(data, sample, snapshots[epoch-1], f'Q-Q curr_prev Epoch {epoch}', ax=ax3, is_spiral=True)
+            # show_qq_plot(data, sample, data, f'Q-Q curr_target Epoch {epoch}', ax=ax4, is_spiral=True)
             plot_dicriminator_heatmap(critic, fig=fig, ax=ax2)
             plt.show()
         else:
-            ax1 = fig.add_subplot(1, 2, 1)
-            ax2 = fig.add_subplot(1, 2, 2)
+            fig = plt.figure(figsize=(20,8))
+
+            ax1 = fig.add_subplot(1, 1, 1)
+            # ax2 = fig.add_subplot(1, 2, 2)
             experiment_gan_plot(data, sample, f'Epoch {epoch}', ax=ax1, is_spiral=False)
-            show_qq_plot(data, sample, data, f'Q-Q curr_target Epoch {epoch}', ax=ax2, is_spiral=False)
+            # show_qq_plot(data, sample, data, f'Q-Q curr_target Epoch {epoch}', ax=ax2, is_spiral=False)
             plt.show()
         clear_output(wait=True)
         
@@ -101,7 +104,7 @@ def train_epochs(generator, critic, g_loss_fn, c_loss_fn,
     else:
         return train_losses, pvals
 
-def get_training_snapshot(generator, critic, n_samples=5000):
+def get_training_snapshot(generator, critic, n_samples=10000):
     generator.eval()
     critic.eval()
     samples = ptu.get_numpy(generator.sample(n_samples))
