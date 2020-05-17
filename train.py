@@ -77,6 +77,7 @@ def train_epochs(generator, critic, g_loss_fn, c_loss_fn,
 
         if is_spiral:
             fig = plt.figure(figsize=(20,10))
+            plt.rc("text", usetex=True)
 
             ax1 = fig.add_subplot(1, 2, 1)
             ax2 = fig.add_subplot(1, 2, 2)
@@ -90,6 +91,7 @@ def train_epochs(generator, critic, g_loss_fn, c_loss_fn,
             plt.show()
         else:
             fig = plt.figure(figsize=(20,8))
+            plt.rc("text", usetex=True)
 
             ax1 = fig.add_subplot(1, 1, 1)
             # ax2 = fig.add_subplot(1, 2, 2)
