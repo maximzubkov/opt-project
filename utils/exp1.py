@@ -21,11 +21,15 @@ def plot_gan_training(losses, title, ax):
     xs = np.arange(n_itr)
 
     ax.plot(xs, losses, label='loss')
-    ax.legend()
+    ax.set_ylim([-0.1, 0.1])
+    ax.legend(prop={'size': 20})
     ax.grid()
-    ax.set_title(title)
-    ax.set_xlabel('Training Iteration')
-    ax.set_ylabel('Loss')
+    ax.set_title(title, fontsize=24)
+    ax.set_xlabel('Training Iteration',fontsize=26)
+    ax.set_ylabel('Loss',fontsize=26)
+    ax.tick_params(axis="x", labelsize=24)
+    ax.tick_params(axis="y", labelsize=24)
+    
 
 def plot_dicriminator_heatmap(d, fig, ax, resolution=60):
     grid = np.zeros((resolution, resolution, 2))
@@ -50,9 +54,11 @@ def experiment_gan_plot(data, samples, title, ax, is_spiral=False):
     else:
         ax.hist(samples, bins=200, density=True, alpha=0.7, label='fake')
         ax.hist(data, bins=200, density=True, alpha=0.7, label='real')
-    ax.legend()
+    ax.legend(prop={'size': 24})
     ax.grid()
-    ax.set_title(title)
+    ax.set_title(title, fontsize=26)
+    ax.tick_params(axis="x", labelsize=24)
+    ax.tick_params(axis="y", labelsize=24)
     
 def show_qq_plot(data, current, previous, title, ax, is_spiral=False):
     pp_x = sm.ProbPlot(current)
