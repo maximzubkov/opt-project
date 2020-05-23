@@ -8,6 +8,7 @@ from PIL import Image as PILImage
 import scipy.ndimage
 from .pytorch_utils import device
 import statsmodels.api as sm
+from scipy import stats 
 from statsmodels.graphics.gofplots import qqplot_2samples
 
 import math
@@ -45,8 +46,16 @@ def plot_dicriminator_heatmap(d, fig, ax, resolution=60):
 
 def experiment_gan_plot(data, samples, title, ax, is_spiral=False):
     if is_spiral:
-        ax.scatter(data[:, 0], data[:, 1], label='real')
-        ax.scatter(samples[:, 0], samples[:, 1], label='fake')
+        ax.imshow(data[0, 0, :, :], 
+                  label='real', 
+                  extent=[-1, 1, -1, 1], 
+                  cmap=plt.get_cmap("Greens"))
+        ax.imshow(samples[0, 0, :, :], 
+                  label='fake', 
+                  alpha=0.5,  
+                  extent=[-1, 1, -1, 1], 
+                  interpolation='bilinear',
+                  cmap=plt.get_cmap("bwr"))
     else:
         ax.hist(samples, bins=200, density=True, alpha=0.7, label='fake')
         ax.hist(data, bins=200, density=True, alpha=0.7, label='real')
@@ -61,15 +70,22 @@ def show_qq_plot(data, current, previous, title, ax, is_spiral=False):
     ax.grid()
     ax.set_title(title)
 
-def experiment_data(n=10000, is_spiral=False, n_modes=1, params=[(0,1)]):
+def experiment_data(n=64, is_spiral=False, n_modes=1, params=[(0,1)]):
     if is_spiral:
-        theta = np.random.rand(n) * 30 
-        r = theta / 30
-        results =np.zeros((n, 2))
-        results[:, 0] = r * (np.cos(theta) + np.random.rand(n) / 7)
-        results[:, 1] = r * (np.sin(theta) + np.random.rand(n) / 7)
-        return results
+        theta = stats.uniform.rvs(loc=3.14, scale=6.28 * 2, size=n * 10000)
+        r = theta / (6.28 * 3)
+        results = np.zeros((n * 10000, 2))
+        results[:, 0] = r * (np.cos(theta) + np.random.rand(n * 10000) / 4)
+        results[:, 1] = r * (np.sin(theta) + np.random.rand(n * 10000) / 4)
+        results = results.reshape(n, 10000, 2)
+        batch = np.zeros((n, 1, 16, 16))
+        for i in range(n):
+            sample = results[i].reshape(-1, 2)
+            bins, *_ = np.histogram2d(sample[:, 0], sample[:, 1], bins=16, range=[[-1, 1], [-1, 1]])
+            batch[i, 0, :, :] = bins
+        return batch
     else:
+        n = 100000
         assert n % 2 == 0
         assert n_modes == len(params)
         lst = []
@@ -81,11 +97,12 @@ def experiment_data(n=10000, is_spiral=False, n_modes=1, params=[(0,1)]):
         return 2 * scaled_data -1
 
 def visualize_experiment_dataset(is_spiral=False, modes=1, param_modes=[(0,1)]):
-    data = experiment_data(is_spiral=is_spiral, n_modes=modes, params=param_modes)
     plt.figure(figsize=(8,8))
     if is_spiral:
-        plt.scatter(data[:, 0], data[:, 1], label='train spiral data')
+        data = experiment_data(n=1, is_spiral=is_spiral, n_modes=modes, params=param_modes)
+        plt.imshow(data[0, 0, :, :], label='train spiral data', extent=[-1, 1, -1, 1], interpolation='bilinear')
     else:
+        data = experiment_data(is_spiral=is_spiral, n_modes=modes, params=param_modes)
         plt.hist(data, bins=50, alpha=0.7, label='train data')
     plt.legend()
     plt.show()
@@ -93,13 +110,15 @@ def visualize_experiment_dataset(is_spiral=False, modes=1, param_modes=[(0,1)]):
 def experiment_save_results(part, fn, name, is_spiral=False, modes=1, param_modes=[(0,1)]):
     data = experiment_data(is_spiral=is_spiral, n_modes=modes, params=param_modes)
     g, c, losses, samples_start, samples_end, pvals = fn(data)
-    fig = plt.figure(figsize=(12,30))
-    ax1 = fig.add_subplot(3, 1, 1)
-    ax2 = fig.add_subplot(3, 1, 2)
-    ax3 = fig.add_subplot(3, 1, 3)
-    plot_gan_training(losses, f'{name}{part} Losses', ax1)
-    experiment_gan_plot(data,  samples_start, f'{name}{part} Epoch 1', ax2, is_spiral)
-    experiment_gan_plot(data, samples_end, f'{name}{part} Final', ax3, is_spiral)
+    fig = plt.figure(figsize=(20,20))
+    ax1 = fig.add_subplot(2, 2, 1)
+    ax2 = fig.add_subplot(2, 2, 2)
+    ax3 = fig.add_subplot(2, 2, 3)
+    ax4 = fig.add_subplot(2, 2, 4)
+    plot_gan_training(losses["c_losses"], f'Critic {name}{part} Loss', ax1)
+    plot_gan_training(losses["g_losses"], f'Generator {name}{part} Loss', ax2)
+    experiment_gan_plot(data,  samples_start, f'{name}{part} Epoch 1', ax3, is_spiral)
+    experiment_gan_plot(data, samples_end, f'{name}{part} Final', ax4, is_spiral)
     # plt.show()
     savefig(f'results/{name}{part}.png')
     return g, c, losses, samples_start, samples_end, pvals
