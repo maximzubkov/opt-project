@@ -3,72 +3,81 @@ import torch.nn as nn
 import torch.nn.functional as F
 import utils.pytorch_utils as ptu
 from src.sn import SpectralNorm 
+import numpy as np
+from torch.autograd import Variable
 
 
+opt = {}
+opt["img_size"] = 16
+opt["latent_dim"] = 32
+opt["channels"] = 1
+def weights_init_normal(m):
+    classname = m.__class__.__name__
+    if classname.find("Conv") != -1:
+        torch.nn.init.normal_(m.weight.data, 0.0, 0.02)
+    elif classname.find("BatchNorm") != -1:
+        torch.nn.init.normal_(m.weight.data, 1.0, 0.02)
+        torch.nn.init.constant_(m.bias.data, 0.0)
 
-class MLP_d(nn.Module):
-    def __init__(self, input_size, n_hidden, hidden_size, output_size):
-        super().__init__()
-        layers = []
-        for _ in range(n_hidden):
-            layers.append(SpectralNorm(nn.Linear(input_size, hidden_size)))
-            layers.append(nn.ELU(0.2))
-            input_size = hidden_size
-        layers.append(SpectralNorm(nn.Linear(hidden_size, output_size)))
-        self.layers = nn.Sequential(*layers)
-    
-    def forward(self, x):
-        return self.layers(x)
-
-
-class MLP_g(nn.Module):
-    def __init__(self, input_size, n_hidden, hidden_size, output_size):
-        super().__init__()
-        layers = []
-        for _ in range(n_hidden):
-            layers.append(nn.Linear(input_size, hidden_size))
-            layers.append(nn.LeakyReLU(0.2))
-            input_size = hidden_size
-        layers.append(nn.Linear(hidden_size, output_size))
-        self.layers = nn.Sequential(*layers)
-    
-    def forward(self, x):
-        return self.layers(x)
 
 class Generator(nn.Module):
-    def __init__(self, latent_dim, n_hidden, hidden_size, data_dim):
-        super().__init__()
-        layers = []
-        self.latent_dim = latent_dim
-        self.out_dim = data_dim
-        self.mlp = MLP_g(latent_dim, n_hidden, hidden_size, data_dim)
-    
+    def __init__(self):
+        super(Generator, self).__init__()
+
+        self.init_size = opt["img_size"] // 4
+        self.l1 = nn.Sequential(nn.Linear(opt["latent_dim"], 32 * self.init_size ** 2))
+
+        self.conv_blocks = nn.Sequential(
+            nn.Upsample(scale_factor=2),
+            nn.Conv2d(32, 32, 3, stride=1, padding=1),
+            nn.BatchNorm2d(32, 0.8),
+            nn.LeakyReLU(0.2, inplace=True),
+            nn.Upsample(scale_factor=2),
+            nn.Conv2d(32, 16, 3, stride=1, padding=1),
+            nn.BatchNorm2d(16, 0.8),
+            nn.LeakyReLU(0.2, inplace=True),
+            nn.Conv2d(16, opt["channels"], 3, stride=1, padding=1),
+            nn.Tanh(),
+        )
+
     def forward(self, z):
-        return torch.tanh(self.mlp(z))
-        return self.mlp(z)
-        
+        out = self.l1(z)
+        out = out.view(out.shape[0], 32, self.init_size, self.init_size)
+        img = self.conv_blocks(out)
+        return img
+    
     def sample(self, n):
-        z = ptu.normal(ptu.zeros(n, self.latent_dim), ptu.ones(n, self.latent_dim))
-        return self.forward(z)
+        z = Variable(torch.FloatTensor(np.random.normal(0, 1, (n, opt["latent_dim"]))).to(ptu.device))
+        out = self.l1(z)
+        out = out.view(out.shape[0], 32, self.init_size, self.init_size)
+        img = self.conv_blocks(out)
+        return img
+        
+
 
 class Discriminator(nn.Module):
-    def __init__(self, latent_dim, n_hidden, hidden_size, data_dim):
-        super().__init__()
-        self.layer1 = nn.Sequential(
-            SpectralNorm(nn.Conv2d(1, 32, kernel_size=5, stride=1, padding=2)),
-            nn.ReLU(),
-            nn.MaxPool2d(kernel_size=2, stride=2))
-        self.layer2 = nn.Sequential(
-            SpectralNorm(nn.Conv2d(32, 64, kernel_size=5, stride=1, padding=2)),
-            nn.ReLU(),
-            nn.MaxPool2d(kernel_size=2, stride=2))
-        self.drop_out = nn.Dropout()
-        self.mlp = MLP_d(latent_dim, n_hidden, hidden_size, data_dim)
-    
-    def forward(self, z):
-        out = self.layer1(z)
-        out = self.layer2(out)
-        out = out.reshape(out.size(0), -1)
-        out = self.drop_out(out)
-        print(out.shape)
-        return torch.sigmoid(self.mlp(out)) 
+    def __init__(self):
+        super(Discriminator, self).__init__()
+
+        def discriminator_block(in_filters, out_filters, bn=True):
+            block = [nn.Conv2d(in_filters, out_filters, 3, 2, 1), 
+                     nn.LeakyReLU(0.2, inplace=True)]
+            if bn:
+                block.append(nn.BatchNorm2d(out_filters, 0.8))
+            return block
+
+        self.model = nn.Sequential(
+            *discriminator_block(opt["channels"], 16, bn=False),
+            *discriminator_block(16, 32),
+        )
+
+        # The height and width of downsampled image
+        ds_size = opt["img_size"] // 2 ** 2
+        self.adv_layer = nn.Linear(32 * ds_size ** 2, 1)
+
+    def forward(self, img):
+        out = self.model(img)
+        out = out.view(out.shape[0], -1)
+        validity = self.adv_layer(out)
+
+        return validity

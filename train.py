@@ -16,53 +16,51 @@ def train(generator, critic, c_loss_fn, g_loss_fn,
           train_loader, g_optimizer, c_optimizer, gp_lamb=0.001,
           n_critic=1, g_scheduler=None, c_scheduler=None, 
           weight_clipping=None):
-    g_losses, c_losses, accuracy = [], [], []
+    g_losses, g_grad, c_grad, c_losses, accuracy = [], [], [], [], []
     generator.train(True)
     critic.train(True)
     for i, x in enumerate(train_loader):
         x = x.to(ptu.device).float()
-        if i % 10 == 0:
-            generator.train(False)
-            critic.train(False)
-            sample = generator.sample(x.shape[0])
-            preds1 = critic(sample).detach().numpy()
-            preds2 = critic(x).detach().numpy()
-            predictions_false = preds1 <= 0.5
-            predictions_true = preds2 > 0.5
-            correct = np.sum(predictions_false) + np.sum(predictions_true)
-            acc = correct / (x.shape[0] * 2)
-            accuracy.append(acc)
-            generator.train(True)
-            critic.train(True)
         fake_data = generator.sample(x.shape[0])
 
         c_loss = c_loss_fn(generator, critic, x)
         c_optimizer.zero_grad()
         c_loss.backward()
+        if i % 500 == 0:
+            c_grad.append(0)
+            for param in critic.parameters():
+                c_grad[-1] += torch.norm(param.grad.data).detach().numpy() ** 2
         c_optimizer.step()
-        c_losses.append(c_loss.item())
+        # if i % 1000 == 0:
+        #     c_losses.append(c_loss.item())
 
         if i % n_critic == 0:
             g_loss = g_loss_fn(generator, critic, x)
             g_optimizer.zero_grad()
             g_loss.backward()
+            if i % 500 == 0:
+                g_grad.append(0)
+                for param in generator.parameters():
+                    g_grad[-1] += torch.norm(param.grad.data).detach().numpy() ** 2
             g_optimizer.step()
-            g_losses.append(g_loss.item())
+            # if i % 1000 == 0:
+            #     g_losses.append(g_loss.item())
             if g_scheduler is not None:
                 g_scheduler.step()
             if c_scheduler is not None:
                 c_scheduler.step()
-    return dict(g_losses=g_losses, c_losses=c_losses, accuracy=accuracy)
+    return dict(g_losses=g_losses, c_losses=c_losses, accuracy=accuracy, g_grad=g_grad, c_grad=c_grad)
 
-def train_epochs(generator, critic, g_loss_fn, c_loss_fn, 
+def train_epochs(generator, critic, g_loss_fn, c_loss_fn,
                  train_loader, train_args, g_opt, c_opt, 
-                 g_scheduler=None, c_scheduler=None, is_spiral=False, modes=1, param_modes=[(0,1)]):
+                 g_scheduler=None, c_scheduler=None, is_spiral=False, modes=1, param_modes=[(0,1)], name=""):
     epochs = train_args['epochs']
 
     train_losses = dict()
-    data = experiment_data(is_spiral=is_spiral, n_modes=modes, params=param_modes)
-    pvals = []
-    snapshots = []
+    train_losses["pvals"] = []
+    train_losses["accuracy"] = []
+    train_losses["hist_diff"] = []
+    data = experiment_data(is_spiral=is_spiral, n_modes=modes, params=param_modes, n=8192)
 
     for epoch in tqdm_notebook(range(epochs), desc='Epoch', leave=False):
         if epoch == 0:
@@ -79,24 +77,35 @@ def train_epochs(generator, critic, g_loss_fn, c_loss_fn,
                 train_losses[k] = []
             train_losses[k].extend(train_loss[k])
         sample = get_training_snapshot(generator, critic)
-        snapshots.append(sample)
+
 
         if not is_spiral:
             # stat criterion
-            data2 = np.array(sample)
-            data2 = data2.T
-            data1 = data.T
-            pvalue = stat.ks_2samp(data1[0], data2[0])[1]
-            pvals.append(pvalue)
+            generator.train(False)
+            critic.train(False)
+            data1 = torch.Tensor(experiment_data(n=250, is_spiral=is_spiral, n_modes=modes, params=param_modes))
+            data2 = generator.sample(250)
+            preds1 = critic(data2).detach().numpy()
+            preds2 = critic(data1).detach().numpy()
+            predictions_false = preds1 <= 0.5
+            predictions_true = preds2 > 0.5
+            correct = np.sum(predictions_false) + np.sum(predictions_true)
+            acc = correct / (data1.shape[0] * 2)
+            train_losses["accuracy"].append(acc)
+            generator.train(True)
+            critic.train(True)
+            data1 = data1.detach().numpy()
+            data2 = data2.detach().numpy()
+            pvalue = stat.ks_2samp(data1.T[0], data2.T[0])[1]
+            train_losses["pvals"].append(pvalue)
 
-        clear_output(wait=True)
+        # clear_output(wait=True)
         if is_spiral:
             fig = plt.figure(figsize=(20,10))
             plt.rc("text", usetex=True)
 
-            ax1 = fig.add_subplot(3, 1, 1)
-            ax2 = fig.add_subplot(3, 1, 2)
-            ax3 = fig.add_subplot(3, 1, 3)
+            ax1 = fig.add_subplot(1, 2, 1)
+            ax2 = fig.add_subplot(1, 2, 2)
             # ax2 = fig.add_subplot(1, 2, 2)
             # ax3 = fig.add_subplot(2, 2, 3)
             # ax4 = fig.add_subplot(2, 2, 4)
@@ -104,40 +113,44 @@ def train_epochs(generator, critic, g_loss_fn, c_loss_fn,
             experiment_gan_plot(data, sample, f'Epoch {epoch}', ax=ax1, is_spiral=True)
             # show_qq_plot(data, sample, snapshots[epoch-1], f'Q-Q curr_prev Epoch {epoch}', ax=ax3, is_spiral=True)
             # show_qq_plot(data, sample, data, f'Q-Q curr_target Epoch {epoch}', ax=ax4, is_spiral=True)
-            # plot_dicriminator_heatmap(critic, fig=fig, ax=ax2)
-
-            ax2.plot(train_losses["g_losses"])
-            ax2.set_title("g loss")
-            ax2.grid()
-            ax3.plot(train_losses["c_losses"])
-            ax3.set_title("d loss")
-            ax3.grid()
+            plot_dicriminator_heatmap(critic, fig=fig, ax=ax2)
             plt.show()
         else:
-            fig = plt.figure(figsize=(20,8))
-            plt.rc("text", usetex=True)
-            ax1 = fig.add_subplot(4, 1, 1)
-            ax2 = fig.add_subplot(4, 1, 2)
-            ax3 = fig.add_subplot(4, 1, 3)
-            ax4 = fig.add_subplot(4, 1, 4)
-            experiment_gan_plot(data, sample, f'Epoch {epoch}', ax=ax1, is_spiral=False)
-            ax2.plot(train_losses["g_losses"])
-            ax2.set_title("g loss")
-            ax2.grid()
-            ax3.plot(train_losses["c_losses"])
-            ax3.set_title("d loss")
-            ax3.grid()
-            ax4.plot(train_losses["accuracy"])
-            ax4.set_title("acc")
-            ax4.grid()
-            # show_qq_plot(data, sample, data, f'Q-Q curr_target Epoch {epoch}', ax=ax2, is_spiral=False)
+            # fig = plt.figure(figsize=(20,20))
+            # plt.rc("text", usetex=True)
+            # ax = fig.add_subplot(1, 1, 1)
+            # experiment_gan_plot(data, data2, f'Epoch {epoch}', ax=ax, is_spiral=False)
+            # plt.savefig(f"results/{name}/hist_{epoch}.pdf") 
+            # plt.show()
+            if epoch == epochs - 1:
+                fig = plt.figure(figsize=(20,20))
+                plt.rc("text", usetex=True)
+                ax1 = fig.add_subplot(2, 1, 1)
+                ax2 = fig.add_subplot(2, 1, 2)
+                ax1.plot(train_losses["g_grad"])
+                ax1.set_title("Norm of Generator gradient", fontsize=45)
+                ax1.set_xlabel('Training Iteration',fontsize=42)
+                ax1.set_ylabel('Norm of gradient',fontsize=42)
+                ax1.tick_params(axis="x", labelsize=40)
+                ax1.tick_params(axis="y", labelsize=40)
+                ax1.grid()
+                
+                ax2.plot(train_losses["c_grad"])
+                ax2.set_title("Norm of Discriminator gradient", fontsize=45)
+                ax2.set_xlabel('Training Iteration',fontsize=42)
+                ax2.set_ylabel('Norm of gradient',fontsize=42)
+                ax2.tick_params(axis="x", labelsize=40)
+                ax2.tick_params(axis="y", labelsize=40)
+                ax2.grid()
+
+                plt.savefig(f"results/{name}/output_{epoch}.pdf") 
             plt.show()
         
     if train_args.get('final_snapshot', False):
         final_snapshot = get_training_snapshot(generator, critic)
-        return (train_losses, start_snapshot, final_snapshot, pvals)
+        return (train_losses, start_snapshot, final_snapshot)
     else:
-        return train_losses, pvals
+        return train_losses
 
 def get_training_snapshot(generator, critic, n_samples=10000):
     generator.train(False)
