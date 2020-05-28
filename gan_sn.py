@@ -2,7 +2,7 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 import utils.pytorch_utils as ptu
-from src.sn import SNLinear, SNConv2d, SpectralNorm 
+from src.sn import SpectralNorm 
 
 
 
@@ -14,7 +14,7 @@ class MLP_d(nn.Module):
             layers.append(SpectralNorm(nn.Linear(input_size, hidden_size)))
             layers.append(nn.ELU(0.2))
             input_size = hidden_size
-        layers.append(SNLinear(hidden_size, output_size))
+        layers.append(SpectralNorm(nn.Linear(hidden_size, output_size)))
         self.layers = nn.Sequential(*layers)
     
     def forward(self, x):
@@ -29,7 +29,7 @@ class MLP_g(nn.Module):
             layers.append(nn.Linear(input_size, hidden_size))
             layers.append(nn.LeakyReLU(0.2))
             input_size = hidden_size
-        layers.append(SNLinear(hidden_size, output_size))
+        layers.append(SpectralNorm(nn.Linear(hidden_size, output_size)))
         self.layers = nn.Sequential(*layers)
     
     def forward(self, x):
@@ -45,7 +45,6 @@ class Generator(nn.Module):
     
     def forward(self, z):
         return torch.tanh(self.mlp(z))
-        return self.mlp(z)
         
     def sample(self, n):
         z = ptu.normal(ptu.zeros(n, self.latent_dim), ptu.ones(n, self.latent_dim))
