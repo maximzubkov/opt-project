@@ -62,6 +62,9 @@ class SpectralNorm(nn.Module):
         self.module.register_parameter(self.name + "_v", v)
         self.module.register_parameter(self.name + "_bar", w_bar)
 
+    def parametrs(self, *args):
+        for param in self.module.parametrs():
+            yield param
 
     def forward(self, *args):
         self._update_u_v()

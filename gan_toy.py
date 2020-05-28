@@ -27,7 +27,6 @@ class Generator(nn.Module):
     
     def forward(self, z):
         return torch.tanh(self.mlp(z))
-        return self.mlp(z)
         
     def sample(self, n):
         z = ptu.normal(ptu.zeros(n, self.latent_dim), ptu.ones(n, self.latent_dim))

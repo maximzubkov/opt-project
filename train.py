@@ -26,10 +26,11 @@ def train(generator, critic, c_loss_fn, g_loss_fn,
         c_loss = c_loss_fn(generator, critic, x)
         c_optimizer.zero_grad()
         c_loss.backward()
-        if i % 500 == 0:
+        if i % 300 == 0:
             c_grad.append(0)
             for param in critic.parameters():
-                c_grad[-1] += torch.norm(param.grad.data).detach().numpy() ** 2
+                if param.requires_grad:
+                    c_grad[-1] += torch.norm(param.grad.data).detach().numpy() ** 2
         c_optimizer.step()
         # if i % 1000 == 0:
         #     c_losses.append(c_loss.item())
@@ -38,10 +39,11 @@ def train(generator, critic, c_loss_fn, g_loss_fn,
             g_loss = g_loss_fn(generator, critic, x)
             g_optimizer.zero_grad()
             g_loss.backward()
-            if i % 500 == 0:
+            if i % 300 == 0:
                 g_grad.append(0)
                 for param in generator.parameters():
-                    g_grad[-1] += torch.norm(param.grad.data).detach().numpy() ** 2
+                    if param.requires_grad:
+                        g_grad[-1] += torch.norm(param.grad.data).detach().numpy() ** 2
             g_optimizer.step()
             # if i % 1000 == 0:
             #     g_losses.append(g_loss.item())
@@ -106,13 +108,8 @@ def train_epochs(generator, critic, g_loss_fn, c_loss_fn,
 
             ax1 = fig.add_subplot(1, 2, 1)
             ax2 = fig.add_subplot(1, 2, 2)
-            # ax2 = fig.add_subplot(1, 2, 2)
-            # ax3 = fig.add_subplot(2, 2, 3)
-            # ax4 = fig.add_subplot(2, 2, 4)
             
             experiment_gan_plot(data, sample, f'Epoch {epoch}', ax=ax1, is_spiral=True)
-            # show_qq_plot(data, sample, snapshots[epoch-1], f'Q-Q curr_prev Epoch {epoch}', ax=ax3, is_spiral=True)
-            # show_qq_plot(data, sample, data, f'Q-Q curr_target Epoch {epoch}', ax=ax4, is_spiral=True)
             plot_dicriminator_heatmap(critic, fig=fig, ax=ax2)
             plt.show()
         else:

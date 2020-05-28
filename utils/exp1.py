@@ -9,14 +9,21 @@ import scipy.ndimage
 from .pytorch_utils import device
 from IPython.display import clear_output
 import statsmodels.api as sm
-from scipy import stats 
+from scipy import stats, integrate
 from statsmodels.graphics.gofplots import qqplot_2samples
+from sklearn.neighbors import KernelDensity
 
 import math
 import sys
 
 softmax = None
 model = None
+
+def kde(X, X_grid, bandwidth=0.2):
+    kde_skl = KernelDensity(bandwidth=bandwidth)
+    kde_skl.fit(X)
+    log_pdf = kde_skl.score_samples(X_grid[:, None])
+    return np.exp(log_pdf)
 
 def plot_gan_training(losses, title, ax):
     n_itr = len(losses)
@@ -54,8 +61,13 @@ def experiment_gan_plot(data, samples, title, ax, is_spiral=False):
         ax.scatter(data[:, 0], data[:, 1], label='real')
         ax.scatter(samples[:, 0], samples[:, 1], label='fake')
     else:
-        ax.hist(samples, bins=30, density=True, alpha=0.7, label='fake')
-        ax.hist(data, bins=30, density=True, alpha=0.7, label='real')
+        data_grid = np.linspace(data.min(), data.max(), 1000)
+        sample_grid = np.linspace(samples.min(), samples.max(), 1000)
+        bandwidth = 0.1
+        data_p_n = kde(data, data_grid, bandwidth=bandwidth)
+        sample_p_n = kde(samples, sample_grid, bandwidth=bandwidth)
+        ax.fill_between(x=data_grid, y1=data_p_n, y2=0, alpha=0.7, label='real')
+        ax.fill_between(x=sample_grid, y1=sample_p_n, y2=0, alpha=0.7, label='fake')
     ax.legend(prop={'size': 40})
     ax.grid()
     ax.set_title(title, fontsize=45)
@@ -96,7 +108,10 @@ def visualize_experiment_dataset(is_spiral=False, modes=1, param_modes=[(0,1)]):
     if is_spiral:
         plt.scatter(data[:, 0], data[:, 1], label='train spiral data')
     else:
-        plt.hist(data, bins=50, alpha=0.7, color="orange")
+        data_grid = np.linspace(data.min(), data.max(), 1000)
+        bandwidth = 0.1
+        data_p_n = kde(data, data_grid, bandwidth=bandwidth)
+        plt.fill_between(x=data_grid, y1=data_p_n, y2=0, alpha=0.7)
     plt.xticks(fontsize=40)
     plt.yticks(fontsize=40)
     plt.grid()
@@ -107,7 +122,7 @@ def experiment_save_results(part, fn, name, is_spiral=False, modes=1, param_mode
     data = experiment_data(is_spiral=is_spiral, n_modes=modes, params=param_modes)
     g, c, losses, samples_start, samples_end = fn(data)
     clear_output(wait=True)
-    fig = plt.figure(figsize=(30,40))
+    fig = plt.figure(figsize=(30,30))
     ax1 = fig.add_subplot(3, 2, 3)
     ax2 = fig.add_subplot(3, 2, 4)
     ax3 = fig.add_subplot(3, 2, 1)
@@ -115,9 +130,9 @@ def experiment_save_results(part, fn, name, is_spiral=False, modes=1, param_mode
     ax5 = fig.add_subplot(3, 2, 5)
     ax6 = fig.add_subplot(3, 2, 6)
     ax1.semilogy(losses["pvals"])
-    ax1.set_title("P-value", fontsize=45)
+    ax1.set_title("p-value", fontsize=45)
     ax1.set_xlabel('Epoch', fontsize=42)
-    ax1.set_ylabel('P-value', fontsize=42)
+    ax1.set_ylabel('p-value', fontsize=42)
     ax1.tick_params(axis="x", labelsize=40)
     ax1.tick_params(axis="y", labelsize=40)
     ax1.grid()
@@ -129,7 +144,7 @@ def experiment_save_results(part, fn, name, is_spiral=False, modes=1, param_mode
     ax2.tick_params(axis="x", labelsize=40)
     ax2.tick_params(axis="y", labelsize=40)
     ax2.grid()
-    x = [500 * x for x in range(len(losses["g_grad"]))]
+    x = [600 * x for x in range(len(losses["g_grad"]))]
     ax5.semilogy(x, losses["g_grad"])
     ax5.set_title("Norm of Generator gradient", fontsize=45)
     ax5.set_xlabel('Training Iteration',fontsize=42)
@@ -137,7 +152,7 @@ def experiment_save_results(part, fn, name, is_spiral=False, modes=1, param_mode
     ax5.tick_params(axis="x", labelsize=40)
     ax5.tick_params(axis="y", labelsize=40)
     ax5.grid()
-    
+    x = [600 * x for x in range(len(losses["c_grad"]))]
     ax6.semilogy(x, losses["c_grad"])
     ax6.set_title("Norm of Discriminator gradient", fontsize=45)
     ax6.set_xlabel('Training Iteration',fontsize=42)
