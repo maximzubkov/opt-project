@@ -13,3 +13,4 @@ epoch_*
 *PARAMS*
 *.npy
 hist*
+output*
