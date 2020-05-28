@@ -11,3 +11,5 @@ __pycache__
 epoch_*
 *.py[cod]
 *PARAMS*
+*.npy
+hist*
