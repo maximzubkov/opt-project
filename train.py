@@ -83,23 +83,24 @@ def train_epochs(generator, critic, g_loss_fn, c_loss_fn,
 
         if not is_spiral:
             # stat criterion
-            generator.train(False)
-            critic.train(False)
-            data1 = torch.Tensor(experiment_data(n=250, is_spiral=is_spiral, n_modes=modes, params=param_modes))
-            data2 = generator.sample(250)
-            preds1 = critic(data2).detach().numpy()
-            preds2 = critic(data1).detach().numpy()
-            predictions_false = preds1 <= 0.5
-            predictions_true = preds2 > 0.5
-            correct = np.sum(predictions_false) + np.sum(predictions_true)
-            acc = correct / (data1.shape[0] * 2)
-            train_losses["accuracy"].append(acc)
-            generator.train(True)
-            critic.train(True)
-            data1 = data1.detach().numpy()
-            data2 = data2.detach().numpy()
-            pvalue = stat.ks_2samp(data1.T[0], data2.T[0])[1]
-            train_losses["pvals"].append(pvalue)
+            with torch.no_grad():
+                generator.train(False)
+                critic.train(False)
+                data1 = torch.Tensor(experiment_data(n=250, is_spiral=is_spiral, n_modes=modes, params=param_modes))
+                data2 = generator.sample(250)
+                preds1 = critic(data2).detach().numpy()
+                preds2 = critic(data1).detach().numpy()
+                predictions_false = preds1 <= 0.5
+                predictions_true = preds2 > 0.5
+                correct = np.sum(predictions_false) + np.sum(predictions_true)
+                acc = correct / (data1.shape[0] * 2)
+                train_losses["accuracy"].append(acc)
+                generator.train(True)
+                critic.train(True)
+                data1 = data1.detach().numpy()
+                data2 = data2.detach().numpy()
+                pvalue = stat.ks_2samp(data1.T[0], data2.T[0])[1]
+                train_losses["pvals"].append(pvalue)
 
         # clear_output(wait=True)
         if is_spiral:
@@ -152,7 +153,8 @@ def train_epochs(generator, critic, g_loss_fn, c_loss_fn,
 def get_training_snapshot(generator, critic, n_samples=10000):
     generator.train(False)
     critic.train(False)
-    samples = ptu.get_numpy(generator.sample(n_samples))
+    with torch.no_grad():
+        samples = ptu.get_numpy(generator.sample(n_samples))
     generator.train(True)
     critic.train(True)
     return samples
