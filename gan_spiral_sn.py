@@ -1,8 +1,6 @@
 import torch
 import torch.nn as nn
-import torch.nn.functional as F
 import utils.pytorch_utils as ptu
-from src.sn import SpectralNorm 
 import numpy as np
 from torch.autograd import Variable
 
@@ -11,6 +9,8 @@ opt = {}
 opt["img_size"] = 16
 opt["latent_dim"] = 32
 opt["channels"] = 1
+
+
 def weights_init_normal(m):
     classname = m.__class__.__name__
     if classname.find("Conv") != -1:
@@ -25,7 +25,8 @@ class Generator(nn.Module):
         super(Generator, self).__init__()
 
         self.init_size = opt["img_size"] // 4
-        self.l1 = nn.Sequential(nn.Linear(opt["latent_dim"], 32 * self.init_size ** 2))
+        out_size = 32 * self.init_size ** 2
+        self.l1 = nn.Sequential(nn.Linear(opt["latent_dim"], out_size))
 
         self.conv_blocks = nn.Sequential(
             nn.Upsample(scale_factor=2),
@@ -45,14 +46,15 @@ class Generator(nn.Module):
         out = out.view(out.shape[0], 32, self.init_size, self.init_size)
         img = self.conv_blocks(out)
         return img
-    
+
     def sample(self, n):
-        z = Variable(torch.FloatTensor(np.random.normal(0, 1, (n, opt["latent_dim"]))).to(ptu.device))
+        z = Variable(torch.FloatTensor(
+                        np.random.normal(0, 1, (n, opt["latent_dim"]))
+                    ).to(ptu.device))
         out = self.l1(z)
         out = out.view(out.shape[0], 32, self.init_size, self.init_size)
         img = self.conv_blocks(out)
         return img
-        
 
 
 class Discriminator(nn.Module):
@@ -60,7 +62,7 @@ class Discriminator(nn.Module):
         super(Discriminator, self).__init__()
 
         def discriminator_block(in_filters, out_filters, bn=True):
-            block = [nn.Conv2d(in_filters, out_filters, 3, 2, 1), 
+            block = [nn.Conv2d(in_filters, out_filters, 3, 2, 1),
                      nn.LeakyReLU(0.2, inplace=True)]
             if bn:
                 block.append(nn.BatchNorm2d(out_filters, 0.8))
