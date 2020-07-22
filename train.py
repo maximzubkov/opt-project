@@ -95,12 +95,12 @@ def train_epochs(experiment, generator, critic, g_loss_fn, c_loss_fn,
     else:
         return train_logs
 
+
 def get_training_snapshot(generator, critic, n_samples=10000):
     with torch.no_grad():
         generator.train(False)
         critic.train(False)
-        with torch.no_grad():
-            samples = ptu.get_numpy(generator.sample(n_samples))
+        samples = ptu.get_numpy(generator.sample(n_samples))
         generator.train(True)
         critic.train(True)
         return samples

@@ -34,7 +34,7 @@ class MLP_g(nn.Module):
         return self.layers(x)
 
 
-class Generator(nn.Module):
+class SN_Generator(nn.Module):
     def __init__(self, latent_dim, n_hidden, hidden_size, data_dim):
         super().__init__()
         self.latent_dim = latent_dim
@@ -50,7 +50,7 @@ class Generator(nn.Module):
         return self.forward(z)
 
 
-class Discriminator(nn.Module):
+class SN_Discriminator(nn.Module):
     def __init__(self, latent_dim, n_hidden, hidden_size, data_dim):
         super().__init__()
         self.mlp = MLP_d(latent_dim, n_hidden, hidden_size, data_dim)
