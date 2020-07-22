@@ -1,5 +1,6 @@
 import os
-from os.path import join, dirname, exists
+from os.path import dirname, exists
+
 import matplotlib.pyplot as plt
 import numpy as np
 

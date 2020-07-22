@@ -1,14 +1,8 @@
 import torch
-import torch.nn as nn
-import torch.optim as optim
-from tqdm import trange, tqdm_notebook
-import utils.pytorch_utils as ptu
-import numpy as np
 from IPython.display import clear_output
-import matplotlib.pyplot as plt
-import scipy.stats as stat
-import statsmodels.api as sm
-from statsmodels.graphics.gofplots import qqplot_2samples
+from tqdm import tqdm_notebook
+
+import utils.pytorch_utils as ptu
 
 
 def train(generator, critic, c_loss_fn, g_loss_fn, 

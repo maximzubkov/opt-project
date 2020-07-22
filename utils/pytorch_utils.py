@@ -1,6 +1,4 @@
 import torch
-import numpy as np
-
 
 _use_gpu = False
 device = None
