@@ -1,2 +1,1 @@
-from .gan_sn import SN_Generator, SN_Discriminator
-from .gan_toy import Generator, Discriminator
+from models.modules import SN_Generator, SN_Discriminator, Generator, Discriminator

@@ -66,7 +66,7 @@ def train_epochs(
     g_scheduler=None,
     c_scheduler=None,
     name="",
-    verbose=False
+    verbose=False,
 ):
     epochs = train_args["epochs"]
 

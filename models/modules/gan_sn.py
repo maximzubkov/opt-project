@@ -36,24 +36,24 @@ class MLP_g(nn.Module):
 
 
 class SN_Generator(nn.Module):
-    def __init__(self, latent_dim, n_hidden, hidden_size, data_dim):
+    def __init__(self, input_size, n_hidden, hidden_size, output_size):
         super().__init__()
-        self.latent_dim = latent_dim
-        self.out_dim = data_dim
-        self.mlp = MLP_g(latent_dim, n_hidden, hidden_size, data_dim)
+        self.input_size = input_size
+        self.output_size = output_size
+        self.mlp = MLP_g(input_size, n_hidden, hidden_size, output_size)
 
     def forward(self, z):
         return torch.tanh(self.mlp(z))
 
     def sample(self, n):
-        z = ptu.normal(ptu.zeros(n, self.latent_dim), ptu.ones(n, self.latent_dim))
+        z = ptu.normal(ptu.zeros(n, self.input_size), ptu.ones(n, self.input_size))
         return self.forward(z)
 
 
 class SN_Discriminator(nn.Module):
-    def __init__(self, latent_dim, n_hidden, hidden_size, data_dim):
+    def __init__(self, input_size, n_hidden, hidden_size, output_size):
         super().__init__()
-        self.mlp = MLP_d(latent_dim, n_hidden, hidden_size, data_dim)
+        self.mlp = MLP_d(input_size, n_hidden, hidden_size, output_size)
 
     def forward(self, z):
         return torch.sigmoid(self.mlp(z))
