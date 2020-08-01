@@ -61,7 +61,7 @@ def experiment_save_results(experiment):
 
 
 def sn2nosn(path="results/compare_tmp.pdf"):
-    plt.figure(figsize=(50, 55))
+    plt.figure(figsize=(52, 55))
     ax = {}
     ax[2] = {}
     ax[4] = {}
@@ -76,33 +76,33 @@ def sn2nosn(path="results/compare_tmp.pdf"):
     ax[6][1] = plt.subplot(3, 3, 8)
     ax[6][2] = plt.subplot(3, 3, 9)
     for n_cr in [2, 4, 6]:
-        ax[n_cr][0].set_title("$n_{cr}= $" + f" {n_cr}", fontsize=45)
+        ax[n_cr][0].set_title("$n_{cr}= $" + f" {n_cr}", fontsize=65)
         ax[n_cr][0].semilogy(np.load(f"results/sn_ncr{n_cr}/p.npy"), label=f"SNGAN", linewidth=7.0)
         ax[n_cr][0].semilogy(np.load(f"results/ncr{n_cr}/p.npy"), label=f"noSNGAN", linewidth=7.0)
-        ax[n_cr][0].set_xlabel("Training Iteration", fontsize=42)
-        ax[n_cr][0].set_ylabel("p-value", fontsize=42)
-        ax[n_cr][0].tick_params(axis="x", labelsize=40)
-        ax[n_cr][0].tick_params(axis="y", labelsize=40)
+        ax[n_cr][0].set_xlabel("Training Iteration", fontsize=55)
+        ax[n_cr][0].set_ylabel("p-value", fontsize=55)
+        ax[n_cr][0].tick_params(axis="x", labelsize=50)
+        ax[n_cr][0].tick_params(axis="y", labelsize=50)
         ax[n_cr][0].grid()
         ax[n_cr][0].legend(fontsize=30)
         x = [300 * x for x in range(len(np.load(f"results/sn_ncr{n_cr}/g_grad.npy")))]
-        ax[n_cr][1].set_title("$n_{cr}= $" + f" {n_cr}", fontsize=45)
+        ax[n_cr][1].set_title("$n_{cr}= $" + f" {n_cr}", fontsize=65)
         ax[n_cr][1].semilogy(x, np.load(f"results/sn_ncr{n_cr}/g_grad.npy"), label=f"SNGAN", linewidth=7.0)
         x = [300 * x for x in range(len(np.load(f"results/ncr{n_cr}/g_grad.npy")))]
         ax[n_cr][1].semilogy(x, np.load(f"results/ncr{n_cr}/g_grad.npy"), label=f"noSNGAN", linewidth=7.0)
-        ax[n_cr][1].set_xlabel("Training Iteration", fontsize=42)
-        ax[n_cr][1].set_ylabel("Generator Grad Norm", fontsize=42)
-        ax[n_cr][1].tick_params(axis="x", labelsize=40)
-        ax[n_cr][1].tick_params(axis="y", labelsize=40)
+        ax[n_cr][1].set_xlabel("Training Iteration", fontsize=55)
+        ax[n_cr][1].set_ylabel("Generator Grad Norm", fontsize=55)
+        ax[n_cr][1].tick_params(axis="x", labelsize=50)
+        ax[n_cr][1].tick_params(axis="y", labelsize=50)
         ax[n_cr][1].grid()
         ax[n_cr][1].legend(fontsize=30)
-        ax[n_cr][2].set_title("$n_{cr}= $" + f" {n_cr}", fontsize=45)
-        ax[n_cr][2].semilogy(np.load(f"results/sn_ncr{n_cr}/accuracy.npy"), label=f"SNGAN", linewidth=7.0)
-        ax[n_cr][2].semilogy(np.load(f"results/ncr{n_cr}/accuracy.npy"), label=f"noSNGAN", linewidth=7.0)
-        ax[n_cr][2].set_xlabel("Training Iteration", fontsize=42)
-        ax[n_cr][2].set_ylabel("Discriminator accuracy", fontsize=42)
-        ax[n_cr][2].tick_params(axis="x", labelsize=40)
-        ax[n_cr][2].tick_params(axis="y", labelsize=40)
+        ax[n_cr][2].set_title("$n_{cr}= $" + f" {n_cr}", fontsize=65)
+        ax[n_cr][2].plot(np.load(f"results/sn_ncr{n_cr}/accuracy.npy"), label=f"SNGAN", linewidth=7.0)
+        ax[n_cr][2].plot(np.load(f"results/ncr{n_cr}/accuracy.npy"), label=f"noSNGAN", linewidth=7.0)
+        ax[n_cr][2].set_xlabel("Training Iteration", fontsize=55)
+        ax[n_cr][2].set_ylabel("Discriminator accuracy", fontsize=55)
+        ax[n_cr][2].tick_params(axis="x", labelsize=50)
+        ax[n_cr][2].tick_params(axis="y", labelsize=70)
         ax[n_cr][2].grid()
         ax[n_cr][2].legend(fontsize=30)
 
