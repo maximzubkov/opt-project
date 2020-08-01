@@ -12,5 +12,5 @@ epoch_*
 *.py[cod]
 *PARAMS*
 *.npy
-hist*
+hist_*
 output*
