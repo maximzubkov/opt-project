@@ -1,5 +1,6 @@
 import torch
 import torch.nn as nn
+
 import utils.pytorch_utils as ptu
 
 
@@ -29,8 +30,7 @@ class Generator(nn.Module):
         return torch.tanh(self.mlp(z))
 
     def sample(self, n):
-        z = ptu.normal(ptu.zeros(n, self.latent_dim),
-                       ptu.ones(n, self.latent_dim))
+        z = ptu.normal(ptu.zeros(n, self.latent_dim), ptu.ones(n, self.latent_dim))
         return self.forward(z)
 
 

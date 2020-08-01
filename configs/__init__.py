@@ -17,5 +17,5 @@ def get_gan_default_config(n_cr: int, exp_name: str, sn: bool) -> GANConfig:
         g_loss=generator_w_loss,
         exp_name=exp_name,
         sn=sn,
-        dataset_params=[(2, 0.4), (0, 0.55), (5, 0.25)]
+        dataset_params=[(2, 0.4), (0, 0.55), (5, 0.25)],
     )
