@@ -1,3 +1,5 @@
+from collections import defaultdict
+
 import torch
 from IPython.display import clear_output
 from tqdm import tqdm_notebook
@@ -27,6 +29,7 @@ def train(
         c_optimizer.zero_grad()
         c_loss.backward()
         if i % 300 == 0:
+            c_grad.append(0)
             for param in critic.parameters():
                 if param.requires_grad:
                     c_grad[-1] += torch.norm(param.grad.data).detach().numpy() ** 2
@@ -37,6 +40,7 @@ def train(
             g_optimizer.zero_grad()
             g_loss.backward()
             if i % 300 == 0:
+                g_grad.append(0)
                 for param in generator.parameters():
                     if param.requires_grad:
                         g_grad[-1] += torch.norm(param.grad.data).detach().numpy() ** 2
@@ -62,16 +66,15 @@ def train_epochs(
     g_scheduler=None,
     c_scheduler=None,
     name="",
+    verbose=False
 ):
     epochs = train_args["epochs"]
 
-    train_logs = dict()
-    train_logs["pvalue"] = []
-    train_logs["accuracy"] = []
+    train_logs = defaultdict(list)
 
     for epoch in tqdm_notebook(range(epochs), desc="Epoch", leave=False):
         if epoch == 0:
-            start_snapshot = get_training_snapshot(generator, critic)
+            start_snapshot = get_training_snapshot(generator)
         generator.train(True)
         critic.train(True)
         train_loss = train(
@@ -88,31 +91,23 @@ def train_epochs(
         )
 
         for k in train_loss:
-            if k not in train_logs:
-                train_logs[k] = []
             train_logs[k].extend(train_loss[k])
 
         evaluation_results = experiment.eval(generator, critic)
         for k in evaluation_results:
-            if k not in train_logs:
-                train_logs[k] = []
             train_logs[k].append(evaluation_results[k])
-        if epoch % 2 == 0:
+        if (epoch % 2 == 0) and verbose:
             clear_output(wait=True)
             experiment.epoch_vizual(train_logs, path=f"results/{name}/output_{epoch}_tmp.pdf")
 
     if train_args.get("final_snapshot", False):
-        final_snapshot = get_training_snapshot(generator, critic)
+        final_snapshot = get_training_snapshot(generator)
         return (train_logs, start_snapshot, final_snapshot)
     else:
         return train_logs
 
 
-def get_training_snapshot(generator, critic, n_samples=10000):
+def get_training_snapshot(generator, n_samples=10000):
     with torch.no_grad():
-        generator.train(False)
-        critic.train(False)
         samples = ptu.get_numpy(generator.sample(n_samples))
-        generator.train(True)
-        critic.train(True)
         return samples

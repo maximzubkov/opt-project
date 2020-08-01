@@ -107,7 +107,7 @@ class HistogramExperiment:
         ax1 = fig.add_subplot(2, 1, 1)
         ax2 = fig.add_subplot(2, 1, 2)
 
-        ax1.plot(train_logs["g_grad"], linewidth=7.0)
+        ax1.semilogy(train_logs["g_grad"], linewidth=7.0)
         ax1.set_title("Norm of Generator gradient", fontsize=45)
         ax1.set_xlabel('Training Iteration', fontsize=42)
         ax1.set_ylabel('Norm of gradient', fontsize=42)
@@ -115,7 +115,7 @@ class HistogramExperiment:
         ax1.tick_params(axis="y", labelsize=40)
         ax1.grid()
 
-        ax2.plot(train_logs["c_grad"], linewidth=7.0)
+        ax2.semilogy(train_logs["c_grad"], linewidth=7.0)
         ax2.set_title("Norm of Discriminator gradient", fontsize=45)
         ax2.set_xlabel('Training Iteration', fontsize=42)
         ax2.set_ylabel('Norm of gradient', fontsize=42)

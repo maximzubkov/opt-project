@@ -1,5 +1,5 @@
-from .gan_config import GANConfig, MLP_params
 from src import generator_w_loss, critic_w_loss
+from .gan_config import GANConfig, MLP_params
 
 
 def get_gan_default_config(n_cr: int, exp_name: str, sn: bool) -> GANConfig:
