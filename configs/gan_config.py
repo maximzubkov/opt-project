@@ -1,5 +1,5 @@
 from dataclasses import dataclass
-from typing import Tuple, Callable, List
+from typing import Tuple, List
 
 
 @dataclass(frozen=True)

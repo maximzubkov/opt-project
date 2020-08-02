@@ -1,9 +1,8 @@
-import scipy.stats as stat
 from dataclasses import asdict
-from math import ceil
 from typing import Tuple, Dict, List
 
 import numpy
+import scipy.stats as stat
 import torch
 from pytorch_lightning.core.lightning import LightningModule
 from sklearn.preprocessing import MinMaxScaler

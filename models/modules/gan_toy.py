@@ -1,8 +1,6 @@
 import torch
 import torch.nn as nn
 
-import utils.pytorch_utils as ptu
-
 
 class MLP(nn.Module):
     def __init__(self, input_size, n_hidden, hidden_size, output_size):
