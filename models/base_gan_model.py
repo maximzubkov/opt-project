@@ -12,6 +12,8 @@ from torch.utils.data import DataLoader
 
 from configs import GANConfig
 from models.modules import SN_Generator, SN_Discriminator, Generator, Discriminator
+from torch.autograd import Variable
+from torch.autograd import grad as torch_grad
 
 
 class GAN(LightningModule):
@@ -53,7 +55,40 @@ class GAN(LightningModule):
         real_data = real_data.to(self.device)
         input_noise = torch.randn(real_data.shape[0], self.config.generator_config.input_size, device=self.device)
         fake_data = self.generator(input_noise).detach()
-        return self.discriminator(fake_data).mean() - self.discriminator(real_data).mean()
+        gradient_penalty = self._gradient_penalty(real_data, fake_data)
+        return self.discriminator(fake_data).mean() - self.discriminator(real_data).mean() + gradient_penalty
+
+    def _gradient_penalty(self, real: torch.Tensor, fake: torch.Tensor) -> torch.Tensor:
+        batch_size = real.shape[0]
+
+        # Calculate interpolation
+        alpha = torch.rand(batch_size, 1).expand_as(real).to(self.device)
+
+        interpolated = alpha * real.data + (1 - alpha) * fake.data
+        interpolated = Variable(interpolated, requires_grad=True).to(self.device)
+
+        # Calculate probability of interpolated examples
+        prob_interpolated = self.discriminator(interpolated)
+
+        # Calculate gradients of probabilities with respect to examples
+        gradients = torch_grad(
+            outputs=prob_interpolated,
+            inputs=interpolated,
+            grad_outputs=torch.ones(prob_interpolated.size()).to(self.device),
+            create_graph=True,
+            retain_graph=True,
+        )[0]
+
+        # Gradients have shape (batch_size, num_channels, img_width, img_height),
+        # so flatten to easily take norm per example in batch
+        gradients = gradients.view(batch_size, -1)
+
+        # Derivatives of the gradient close to 0 can cause problems because of
+        # the square root, so manually calculate norm and add epsilon
+        gradients_norm = torch.sqrt(torch.sum(gradients ** 2, dim=1) + 1e-12)
+
+        # Return gradient penalty
+        return self.config.gp_weight * ((gradients_norm - 1) ** 2).mean()
 
     def _construnct_datatset(self, dataset_size: int):
         n_modes = len(self.config.dataset_params)

@@ -29,6 +29,8 @@ class GANConfig:
 
     dataset_params: List[Tuple[float, float]]
 
+    gp_weight: float
+
     save_every_epoch: int = 1
     val_every_epoch: int = 1
     log_every_epoch: int = 10
