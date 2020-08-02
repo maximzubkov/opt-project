@@ -28,8 +28,8 @@ def train(model_name: str, n_cr: int, num_workers: int = 0, is_test: bool = Fals
     else:
         raise ValueError(f"Model {model_name} is not supported")
     # define logger
-    wandb_logger = WandbLogger(project=f"{model_name}-{n_cr}", log_model=True, offline=is_test)
-    wandb_logger.watch(model)
+    wandb_logger = WandbLogger(project="GAN", log_model=True, offline=is_test)
+    wandb_logger.watch(model, log="all")
     # define model checkpoint callback
     model_checkpoint_callback = ModelCheckpoint(
         filepath=join(wandb.run.dir, "{epoch:02d}-{val_loss:.4f}"), period=config.save_every_epoch, save_top_k=3,
