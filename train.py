@@ -17,14 +17,14 @@ SEED = 7
 def train(model_name: str, n_cr: int, num_workers: int = 0, is_test: bool = False, resume_from_checkpoint: str = None):
     seed_everything(SEED)
 
-    if model_name == "sn_gan":
+    if model_name == "improved_gan":
         config_function = get_gan_test_config if is_test else get_gan_default_config
         config = config_function(n_cr)
-        model = GAN(config, num_workers, spec_norm=True)
+        model = GAN(config, num_workers, improved=True)
     elif model_name == "default_gan":
         config_function = get_gan_test_config if is_test else get_gan_default_config
         config = config_function(n_cr)
-        model = GAN(config, num_workers, spec_norm=False)
+        model = GAN(config, num_workers, improved=False)
     else:
         raise ValueError(f"Model {model_name} is not supported")
     # define logger

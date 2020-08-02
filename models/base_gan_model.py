@@ -17,15 +17,16 @@ from torch.autograd import grad as torch_grad
 
 
 class GAN(LightningModule):
-    def __init__(self, config: GANConfig, num_workers: int, spec_norm=False):
+    def __init__(self, config: GANConfig, num_workers: int, improved=False):
         super().__init__()
         self.save_hyperparameters()
         self.config = config
         self.num_workers = num_workers
+        self.improved = improved
 
         generator_config = self.config.generator_config
         discriminator_config = self.config.discriminator_config
-        if spec_norm:
+        if self.improved:
             self.generator = SN_Generator(**asdict(generator_config))
             self.discriminator = SN_Discriminator(**asdict(discriminator_config))
         else:
@@ -55,7 +56,7 @@ class GAN(LightningModule):
         real_data = real_data.to(self.device)
         input_noise = torch.randn(real_data.shape[0], self.config.generator_config.input_size, device=self.device)
         fake_data = self.generator(input_noise).detach()
-        gradient_penalty = self._gradient_penalty(real_data, fake_data)
+        gradient_penalty = self._gradient_penalty(real_data, fake_data) if self.improved else 0
         return self.discriminator(fake_data).mean() - self.discriminator(real_data).mean() + gradient_penalty
 
     def _gradient_penalty(self, real: torch.Tensor, fake: torch.Tensor) -> torch.Tensor:
