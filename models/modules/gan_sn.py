@@ -1,8 +1,7 @@
 import torch
 import torch.nn as nn
 
-import utils.pytorch_utils as ptu
-from src.sn import SpectralNorm
+from src import SpectralNorm
 
 
 class MLP_d(nn.Module):
@@ -10,10 +9,9 @@ class MLP_d(nn.Module):
         super().__init__()
         layers = []
         for _ in range(n_hidden):
-            layers.append(SpectralNorm(nn.Linear(input_size, hidden_size)))
-            layers.append(nn.ELU(0.2))
+            layers += [SpectralNorm(nn.Linear(input_size, hidden_size)), nn.ELU(0.2)]
             input_size = hidden_size
-        layers.append(SpectralNorm(nn.Linear(hidden_size, output_size)))
+        layers += [SpectralNorm(nn.Linear(hidden_size, output_size))]
         self.layers = nn.Sequential(*layers)
 
     def forward(self, x):
@@ -25,10 +23,9 @@ class MLP_g(nn.Module):
         super().__init__()
         layers = []
         for _ in range(n_hidden):
-            layers.append(nn.Linear(input_size, hidden_size))
-            layers.append(nn.LeakyReLU(0.2))
+            layers += [nn.Linear(input_size, hidden_size), nn.LeakyReLU(0.2)]
             input_size = hidden_size
-        layers.append(SpectralNorm(nn.Linear(hidden_size, output_size)))
+        layers += [SpectralNorm(nn.Linear(hidden_size, output_size))]
         self.layers = nn.Sequential(*layers)
 
     def forward(self, x):
@@ -36,24 +33,20 @@ class MLP_g(nn.Module):
 
 
 class SN_Generator(nn.Module):
-    def __init__(self, latent_dim, n_hidden, hidden_size, data_dim):
+    def __init__(self, input_size, n_hidden, hidden_size, output_size):
         super().__init__()
-        self.latent_dim = latent_dim
-        self.out_dim = data_dim
-        self.mlp = MLP_g(latent_dim, n_hidden, hidden_size, data_dim)
+        self.input_size = input_size
+        self.output_size = output_size
+        self.mlp = MLP_g(input_size, n_hidden, hidden_size, output_size)
 
     def forward(self, z):
         return torch.tanh(self.mlp(z))
 
-    def sample(self, n):
-        z = ptu.normal(ptu.zeros(n, self.latent_dim), ptu.ones(n, self.latent_dim))
-        return self.forward(z)
-
 
 class SN_Discriminator(nn.Module):
-    def __init__(self, latent_dim, n_hidden, hidden_size, data_dim):
+    def __init__(self, input_size, n_hidden, hidden_size, output_size):
         super().__init__()
-        self.mlp = MLP_d(latent_dim, n_hidden, hidden_size, data_dim)
+        self.mlp = MLP_d(input_size, n_hidden, hidden_size, output_size)
 
     def forward(self, z):
         return torch.sigmoid(self.mlp(z))

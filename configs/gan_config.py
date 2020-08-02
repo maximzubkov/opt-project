@@ -1,7 +1,13 @@
 from dataclasses import dataclass
-from typing import Tuple, Callable, List
+from typing import Tuple, List
 
-MLP_params = Tuple[int, int, int, int]
+
+@dataclass(frozen=True)
+class MLPConfig:
+    input_size: int
+    n_hidden: int
+    hidden_size: int
+    output_size: int
 
 
 @dataclass(frozen=True)
@@ -9,14 +15,20 @@ class GANConfig:
     batch_size: int
     n_epochs: int
     n_cr: int
-    c_lr: float
-    c_betas: Tuple[float, float]
-    c_params: MLP_params
-    c_loss: Callable
+    train_dataset_size: int
+    val_dataset_size: int
+
+    d_lr: float
+    d_betas: Tuple[float, float]
+
+    discriminator_config: MLPConfig
+    generator_config: MLPConfig
+
     g_lr: float
     g_betas: Tuple[float, float]
-    g_params: MLP_params
-    g_loss: Callable
-    exp_name: str
-    sn: bool
+
     dataset_params: List[Tuple[float, float]]
+
+    save_every_epoch: int = 1
+    val_every_epoch: int = 1
+    log_every_epoch: int = 10

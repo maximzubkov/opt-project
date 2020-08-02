@@ -1,113 +1,68 @@
-from collections import defaultdict
+from argparse import ArgumentParser
+from multiprocessing import cpu_count
+from os.path import join
 
 import torch
-from IPython.display import clear_output
-from tqdm import tqdm_notebook
+import wandb
+from pytorch_lightning import Trainer, seed_everything
+from pytorch_lightning.callbacks import ModelCheckpoint, LearningRateLogger
+from pytorch_lightning.loggers import WandbLogger
 
-import utils.pytorch_utils as ptu
+from configs import get_gan_default_config, get_gan_test_config
+from models import GAN
 
-
-def train(
-    generator,
-    critic,
-    c_loss_fn,
-    g_loss_fn,
-    train_loader,
-    g_optimizer,
-    c_optimizer,
-    n_critic=1,
-    g_scheduler=None,
-    c_scheduler=None,
-):
-    g_losses, g_grad, c_grad, c_losses = [], [], [], []
-    generator.train(True)
-    critic.train(True)
-    for i, x in enumerate(train_loader):
-        x = x.to(ptu.device).float()
-
-        c_loss = c_loss_fn(generator, critic, x)
-        c_optimizer.zero_grad()
-        c_loss.backward()
-        if i % 300 == 0:
-            c_grad.append(0)
-            for param in critic.parameters():
-                if param.requires_grad:
-                    c_grad[-1] += torch.norm(param.grad.data).detach().numpy() ** 2
-        c_optimizer.step()
-
-        if i % n_critic == 0:
-            g_loss = g_loss_fn(generator, critic, x)
-            g_optimizer.zero_grad()
-            g_loss.backward()
-            if i % 300 == 0:
-                g_grad.append(0)
-                for param in generator.parameters():
-                    if param.requires_grad:
-                        g_grad[-1] += torch.norm(param.grad.data).detach().numpy() ** 2
-            g_optimizer.step()
-
-            if g_scheduler is not None:
-                g_scheduler.step()
-            if c_scheduler is not None:
-                c_scheduler.step()
-    return dict(g_losses=g_losses, c_losses=c_losses, g_grad=g_grad, c_grad=c_grad)
+SEED = 7
 
 
-def train_epochs(
-    experiment,
-    generator,
-    critic,
-    g_loss_fn,
-    c_loss_fn,
-    train_loader,
-    train_args,
-    g_opt,
-    c_opt,
-    g_scheduler=None,
-    c_scheduler=None,
-    name="",
-    verbose=False
-):
-    epochs = train_args["epochs"]
+def train(model_name: str, n_cr: int, num_workers: int = 0, is_test: bool = False, resume_from_checkpoint: str = None):
+    seed_everything(SEED)
 
-    train_logs = defaultdict(list)
-
-    for epoch in tqdm_notebook(range(epochs), desc="Epoch", leave=False):
-        if epoch == 0:
-            start_snapshot = get_training_snapshot(generator)
-        generator.train(True)
-        critic.train(True)
-        train_loss = train(
-            generator,
-            critic,
-            c_loss_fn,
-            g_loss_fn,
-            train_loader,
-            g_opt,
-            c_opt,
-            n_critic=train_args.get("n_critic", 1),
-            g_scheduler=g_scheduler,
-            c_scheduler=c_scheduler,
-        )
-
-        for k in train_loss:
-            train_logs[k].extend(train_loss[k])
-
-        evaluation_results = experiment.eval(generator, critic)
-        for k in evaluation_results:
-            train_logs[k].append(evaluation_results[k])
-        if (epoch % 2 == 0) and verbose:
-            clear_output(wait=True)
-            experiment.epoch_vizual(train_logs, path=f"results/{name}/output_{epoch}_tmp.pdf")
-
-    if train_args.get("final_snapshot", False):
-        final_snapshot = get_training_snapshot(generator)
-        return (train_logs, start_snapshot, final_snapshot)
+    if model_name == "sn_gan":
+        config_function = get_gan_test_config if is_test else get_gan_default_config
+        config = config_function(n_cr)
+        model = GAN(config, num_workers, spec_norm=True)
+    elif model_name == "default_gan":
+        config_function = get_gan_test_config if is_test else get_gan_default_config
+        config = config_function(n_cr)
+        model = GAN(config, num_workers, spec_norm=False)
     else:
-        return train_logs
+        raise ValueError(f"Model {model_name} is not supported")
+    # define logger
+    wandb_logger = WandbLogger(project=f"{model_name}-{n_cr}", log_model=True, offline=is_test)
+    wandb_logger.watch(model)
+    # define model checkpoint callback
+    model_checkpoint_callback = ModelCheckpoint(
+        filepath=join(wandb.run.dir, "{epoch:02d}-{val_loss:.4f}"), period=config.save_every_epoch, save_top_k=3,
+    )
+    # use gpu if it exists
+    gpu = 1 if torch.cuda.is_available() else None
+    # define learning rate logger
+    lr_logger = LearningRateLogger()
+    trainer = Trainer(
+        max_epochs=config.n_epochs,
+        deterministic=True,
+        check_val_every_n_epoch=config.val_every_epoch,
+        row_log_interval=config.log_every_epoch,
+        logger=wandb_logger,
+        checkpoint_callback=model_checkpoint_callback,
+        resume_from_checkpoint=resume_from_checkpoint,
+        gpus=gpu,
+        callbacks=[lr_logger],
+        reload_dataloaders_every_epoch=True,
+    )
+
+    trainer.fit(model)
+
+    trainer.test()
 
 
-def get_training_snapshot(generator, n_samples=10000):
-    with torch.no_grad():
-        samples = ptu.get_numpy(generator.sample(n_samples))
-        return samples
+if __name__ == "__main__":
+    arg_parser = ArgumentParser()
+    arg_parser.add_argument("model", choices=["sn_gan", "default_gan"])
+    arg_parser.add_argument("--n_cr", type=int, default=2)
+    arg_parser.add_argument("--n_workers", type=int, default=cpu_count())
+    arg_parser.add_argument("--test", action="store_true")
+    arg_parser.add_argument("--resume", type=str, default=None)
+    args = arg_parser.parse_args()
+
+    train(args.model, args.n_cr, args.n_workers, args.test, args.resume)
