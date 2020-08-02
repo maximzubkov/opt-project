@@ -17,7 +17,7 @@ def get_gan_default_config(n_cr: int) -> GANConfig:
         g_lr=9e-5,
         g_betas=(0, 0.9),
         gp_weight=3e-2,
-        dataset_params=[(2, 0.4), (0, 0.55), (5, 0.25)],
+        dataset_params=[(-0.5, 0.18), (0, 0.14), (0.75, 0.12)],
     )
 
 
@@ -37,5 +37,5 @@ def get_gan_test_config(n_cr: int) -> GANConfig:
         g_lr=9e-5,
         g_betas=(0, 0.9),
         gp_weight=3e-2,
-        dataset_params=[(2, 0.4), (0, 0.55), (5, 0.25)],
+        dataset_params=[(-0.5, 0.18), (0, 0.14), (0.75, 0.12)],
     )

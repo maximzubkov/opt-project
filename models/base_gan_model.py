@@ -96,7 +96,7 @@ class GAN(LightningModule):
             numpy.random.normal(loc=loc, scale=scale, size=(dataset_size // n_modes,))
             for loc, scale in self.config.dataset_params
         ]
-        data = 2 * MinMaxScaler().fit_transform(numpy.concatenate(gaussians).reshape(-1, 1) + 1) - 1
+        data = numpy.concatenate(gaussians).reshape(-1, 1)
         return data.astype(numpy.float32)
 
     # ===== TRAIN BLOCK =====
