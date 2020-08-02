@@ -14,3 +14,4 @@ epoch_*
 *.npy
 hist_*
 output*
+wandb/

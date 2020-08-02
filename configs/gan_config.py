@@ -18,19 +18,17 @@ class GANConfig:
     train_dataset_size: int
     val_dataset_size: int
 
-    d_optimizer: str
     d_lr: float
     d_betas: Tuple[float, float]
 
     discriminator_config: MLPConfig
     generator_config: MLPConfig
 
-    d_loss: Callable
-    g_loss: Callable
-
-    g_optimizer: str
     g_lr: float
     g_betas: Tuple[float, float]
 
-    exp_name: str
     dataset_params: List[Tuple[float, float]]
+
+    save_every_epoch: int = 1
+    val_every_epoch: int = 1
+    log_every_epoch: int = 10
