@@ -58,7 +58,7 @@ def train(model_name: str, n_cr: int, num_workers: int = 0, is_test: bool = Fals
 
 if __name__ == "__main__":
     arg_parser = ArgumentParser()
-    arg_parser.add_argument("model", choices=["sn_gan", "default_gan"])
+    arg_parser.add_argument("model", choices=["improved_gan", "default_gan"])
     arg_parser.add_argument("--n_cr", type=int, default=2)
     arg_parser.add_argument("--n_workers", type=int, default=cpu_count())
     arg_parser.add_argument("--test", action="store_true")
